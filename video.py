@@ -25,3 +25,8 @@ class Video(Resource):
         args = video_put_args.parse_args()
         videos[video_id] = args
         return videos[video_id], 201 #Created
+
+    def delete(self, video_id):
+        abort_id_not_exist(video_id)
+        del videos[video_id]
+        return '', 204 #Deleted
