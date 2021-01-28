@@ -24,6 +24,11 @@ video_put_args.add_argument("title", type=str, help="Needs a title for the Video
 video_put_args.add_argument("views", type=int, help="Views of the Video")
 video_put_args.add_argument("likes", type=int, help="Likes on the Video")
 
+video_update_args = reqparse.RequestParser()
+video_update_args.add_argument("title", type=str, help="Title of the Video")
+video_update_args.add_argument("views", type=int, help="Views of the Video")
+video_update_args.add_argument("likes", type=int, help="Likes on the Video")
+
 resource_fields = {
     'id': fields.Integer,
     'title': fields.String,
@@ -35,20 +40,48 @@ class Video(Resource):
     @marshal_with(resource_fields)
     def get(self, video_id):
         result = VideoModel.query.filter_by(id=video_id).first()
+        if not result:
+            abort(404, message="Video not found with that id...")#Not found
         return result
 
     @marshal_with(resource_fields)
     def put(self, video_id):
         args = video_put_args.parse_args()
+        result = VideoModel.query.filter_by(id=video_id).first()
+        if result:
+            abort(409, message="Video id already exist!...")#Already created
+
         video = VideoModel(id=video_id, title = args['title'], views = args['views'], likes = args['likes'])
         db.session.add(video)
         db.session.commit()
         return video, 201 #Created
 
-    """def delete(self, video_id):
-        abort_id_not_exist(video_id)
-        del videos[video_id]
-        return '', 204 #Deleted"""
+    @marshal_with(resource_fields)
+    def patch(self, video_id):
+        args = video_update_args.parse_args()
+        result = VideoModel.query.filter_by(id=video_id).first()
+        if not result:
+            abort(404, message="Video not found with that id, cannot update...")#Not found
+
+        if args['title']:
+            result.title = args['title']
+        
+        if args['views']:
+            result.views = args['views']
+        
+        if args['likes']:
+            result.likes = args['likes']
+        
+        db.session.commit()
+        return result       
+
+    def delete(self, video_id):
+        result = VideoModel.query.filter_by(id=video_id).first()
+        if not result:
+            abort(404, message="Video not found, cannot delete...")#Not found
+        db.session.delete(result)
+        db.session.commit()
+        return '', 204 #Deleted
 
 
 api.add_resource(Video, "/video/<int:video_id>")
